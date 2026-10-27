@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -35,29 +36,28 @@ public class MainActivity extends AppCompatActivity {
         recyclerPantry = findViewById(R.id.recyclerPantry);
         txtEmptyPantry = findViewById(R.id.txtEmptyPantry);
 
-        recyclerPantry.setLayoutManager(new LinearLayoutManager(this));
+        recyclerPantry.setLayoutManager(
+                new LinearLayoutManager(this));
 
         btnAddIngredient.setOnClickListener(v -> {
             Intent intent = new Intent(
                     MainActivity.this,
-                    AddIngredientActivity.class
-            );
+                    AddIngredientActivity.class);
             startActivity(intent);
         });
 
-        btnSuggestedRecipes.setOnClickListener(v ->
-                android.widget.Toast.makeText(
-                        MainActivity.this,
-                        "Suggested Recipes screen coming next",
-                        android.widget.Toast.LENGTH_SHORT
-                ).show()
-        );
+        btnSuggestedRecipes.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    MainActivity.this,
+                    SuggestedRecipesActivity.class);
+            startActivity(intent);
+        });
 
         btnSettings.setOnClickListener(v ->
-                android.widget.Toast.makeText(
+                Toast.makeText(
                         MainActivity.this,
                         "Settings screen coming next",
-                        android.widget.Toast.LENGTH_SHORT
+                        Toast.LENGTH_SHORT
                 ).show()
         );
     }
@@ -79,8 +79,7 @@ public class MainActivity extends AppCompatActivity {
             recyclerPantry.setVisibility(View.VISIBLE);
 
             recyclerPantry.setAdapter(
-                    new PantryAdapter(ingredients)
-            );
+                    new PantryAdapter(ingredients));
         }
     }
 }

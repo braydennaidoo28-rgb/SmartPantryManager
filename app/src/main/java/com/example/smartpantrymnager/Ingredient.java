@@ -30,4 +30,20 @@ public class Ingredient {
     public String getExpiryDate() {
         return expiryDate;
     }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setQuantity(double quantity) {
+        this.quantity = quantity;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public void setExpiryDate(String expiryDate) {
+        this.expiryDate = expiryDate;
+    }
 }

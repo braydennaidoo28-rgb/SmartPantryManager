@@ -19,27 +19,29 @@ public class RecipeMatcher {
             for (Ingredient required : recipe.getRequiredIngredients()) {
 
                 double availableQuantity = 0;
-                boolean ingredientFound = false;
 
                 for (Ingredient pantry : pantryIngredients) {
 
-                    if (pantry.getName().trim().equalsIgnoreCase(
-                            required.getName().trim())) {
+                    // Match singular/plural names and ignore case
+                    if (normalizeIngredientName(pantry.getName())
+                            .equals(normalizeIngredientName(
+                                    required.getName()))) {
 
                         double convertedQuantity = convertQuantity(
                                 pantry.getQuantity(),
                                 pantry.getUnit(),
-                                required.getUnit());
+                                required.getUnit()
+                        );
 
+                        // Ignore incompatible measurement units
                         if (convertedQuantity >= 0) {
                             availableQuantity += convertedQuantity;
-                            ingredientFound = true;
                         }
                     }
                 }
 
-                if (!ingredientFound
-                        || availableQuantity < required.getQuantity()) {
+                // Every required ingredient must have enough quantity
+                if (availableQuantity < required.getQuantity()) {
                     allIngredientsAvailable = false;
                     break;
                 }
@@ -51,6 +53,67 @@ public class RecipeMatcher {
         }
 
         return matchingRecipes;
+    }
+
+    // Normalize common singular and plural ingredient names
+    private static String normalizeIngredientName(String name) {
+
+        if (name == null) {
+            return "";
+        }
+
+        String normalized = name.trim()
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("\\s+", " ");
+
+        switch (normalized) {
+            case "eggs":
+                return "egg";
+
+            case "tomatoes":
+                return "tomato";
+
+            case "potatoes":
+                return "potato";
+
+            case "onions":
+                return "onion";
+
+            case "carrots":
+                return "carrot";
+
+            case "bananas":
+                return "banana";
+
+            case "apples":
+                return "apple";
+
+            case "cloves of garlic":
+                return "garlic";
+
+            case "slices of bread":
+                return "bread";
+
+            default:
+                break;
+        }
+
+        // Handle other straightforward plurals.
+        if (normalized.length() > 4
+                && normalized.endsWith("ies")) {
+            return normalized.substring(
+                    0, normalized.length() - 3) + "y";
+        }
+
+        if (normalized.length() > 3
+                && normalized.endsWith("s")
+                && !normalized.endsWith("ss")
+                && !normalized.endsWith("us")) {
+            return normalized.substring(
+                    0, normalized.length() - 1);
+        }
+
+        return normalized;
     }
 
     private static double convertQuantity(
@@ -65,7 +128,7 @@ public class RecipeMatcher {
             return quantity;
         }
 
-        // Convert litres to millilitres.
+        // Litres to millilitres
         if (pantry.equals("l") && required.equals("ml")) {
             return quantity * 1000;
         }
@@ -74,7 +137,7 @@ public class RecipeMatcher {
             return quantity / 1000;
         }
 
-        // Convert kilograms to grams.
+        // Kilograms to grams
         if (pantry.equals("kg") && required.equals("g")) {
             return quantity * 1000;
         }
@@ -83,15 +146,20 @@ public class RecipeMatcher {
             return quantity / 1000;
         }
 
-        // Incompatible units must not count towards the recipe.
+        // Incompatible units must not count
         return -1;
     }
 
     private static String normalizeUnit(String unit) {
 
+        if (unit == null) {
+            return "";
+        }
+
         String normalized = unit.trim().toLowerCase(Locale.ROOT);
 
         switch (normalized) {
+
             case "litre":
             case "litres":
             case "liter":
@@ -118,9 +186,11 @@ public class RecipeMatcher {
                 return "pieces";
 
             case "slice":
+            case "slices":
                 return "slices";
 
             case "clove":
+            case "cloves":
                 return "cloves";
 
             default:

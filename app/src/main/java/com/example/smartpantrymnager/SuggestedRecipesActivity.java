@@ -1,3 +1,4 @@
+
 package com.example.smartpantrymnager;
 
 import android.content.Intent;
@@ -6,6 +7,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -32,8 +34,7 @@ public class SuggestedRecipesActivity extends AppCompatActivity {
         listRecipes.setOnItemClickListener(
                 (parent, view, position, id) -> {
 
-                    Recipe selectedRecipe =
-                            matchingRecipes.get(position);
+                    Recipe selectedRecipe = matchingRecipes.get(position);
 
                     Intent intent = new Intent(
                             SuggestedRecipesActivity.this,
@@ -60,17 +61,27 @@ public class SuggestedRecipesActivity extends AppCompatActivity {
         );
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Refresh suggestions when returning to this screen
+        if (listRecipes != null && txtNoRecipes != null) {
+            loadMatchingRecipes();
+        }
+    }
+
     private void loadMatchingRecipes() {
 
-        // Load all predefined recipes
+        // Load recipes and their ingredients from SQLite
         ArrayList<Recipe> allRecipes =
-                RecipeStorage.getRecipes();
+                RecipeStorage.getRecipes(this);
 
-        // Load the saved pantry ingredients
+        // Load pantry ingredients from SQLite
         ArrayList<Ingredient> pantryIngredients =
                 PantryStorage.loadIngredients(this);
 
-        // Find recipes with all required ingredients
+        // Find recipes with every required ingredient
         // in sufficient quantities
         matchingRecipes = RecipeMatcher.getMatchingRecipes(
                 allRecipes,
@@ -84,7 +95,7 @@ public class SuggestedRecipesActivity extends AppCompatActivity {
             recipeNames.add(recipe.getName());
         }
 
-        // Display matching recipes in the ListView
+        // Display matching recipes
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_list_item_1,
@@ -93,12 +104,12 @@ public class SuggestedRecipesActivity extends AppCompatActivity {
 
         listRecipes.setAdapter(adapter);
 
-        // Show a message if no recipes match
+        // Display a message when there are no matches
         if (matchingRecipes.isEmpty()) {
 
             txtNoRecipes.setText(
-                    "No recipes match your pantry yet. "
-                            + "Add more ingredients to see suggestions."
+                    "No recipes match your pantry yet. " +
+                            "Add more ingredients to see suggestions."
             );
 
             txtNoRecipes.setVisibility(View.VISIBLE);

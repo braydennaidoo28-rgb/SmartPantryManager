@@ -1,10 +1,8 @@
-
 package com.example.smartpantrymnager;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -30,57 +28,84 @@ public class SuggestedRecipesActivity extends AppCompatActivity {
 
         loadMatchingRecipes();
 
+        // Open the details of the selected recipe
         listRecipes.setOnItemClickListener(
                 (parent, view, position, id) -> {
 
-                    Recipe selectedRecipe = matchingRecipes.get(position);
+                    Recipe selectedRecipe =
+                            matchingRecipes.get(position);
 
                     Intent intent = new Intent(
                             SuggestedRecipesActivity.this,
-                            RecipeDetailActivity.class);
+                            RecipeDetailActivity.class
+                    );
 
-                    intent.putExtra("recipeName", selectedRecipe.getName());
+                    intent.putExtra(
+                            "recipeName",
+                            selectedRecipe.getName()
+                    );
+
                     intent.putExtra(
                             "recipeDescription",
-                            selectedRecipe.getDescription());
+                            selectedRecipe.getDescription()
+                    );
+
                     intent.putExtra(
                             "recipeInstructions",
-                            selectedRecipe.getInstructions());
+                            selectedRecipe.getInstructions()
+                    );
 
                     startActivity(intent);
-                });
+                }
+        );
     }
 
     private void loadMatchingRecipes() {
 
-        ArrayList<Recipe> allRecipes = RecipeStorage.getRecipes();
+        // Load all predefined recipes
+        ArrayList<Recipe> allRecipes =
+                RecipeStorage.getRecipes();
 
+        // Load the saved pantry ingredients
         ArrayList<Ingredient> pantryIngredients =
                 PantryStorage.loadIngredients(this);
 
+        // Find recipes with all required ingredients
+        // in sufficient quantities
         matchingRecipes = RecipeMatcher.getMatchingRecipes(
-                allRecipes, pantryIngredients);
+                allRecipes,
+                pantryIngredients
+        );
 
+        // Prepare the names of matching recipes
         ArrayList<String> recipeNames = new ArrayList<>();
 
         for (Recipe recipe : matchingRecipes) {
             recipeNames.add(recipe.getName());
         }
 
+        // Display matching recipes in the ListView
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_list_item_1,
-                recipeNames);
+                recipeNames
+        );
 
         listRecipes.setAdapter(adapter);
 
+        // Show a message if no recipes match
         if (matchingRecipes.isEmpty()) {
+
             txtNoRecipes.setText(
                     "No recipes match your pantry yet. "
-                            + "Add more ingredients to see suggestions.");
+                            + "Add more ingredients to see suggestions."
+            );
+
             txtNoRecipes.setVisibility(View.VISIBLE);
             listRecipes.setVisibility(View.GONE);
+
         } else {
+
             txtNoRecipes.setVisibility(View.GONE);
             listRecipes.setVisibility(View.VISIBLE);
         }

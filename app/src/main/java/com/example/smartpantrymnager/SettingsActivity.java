@@ -22,72 +22,83 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
+        // Connect Java variables to the XML views
         btnClearPantry = findViewById(R.id.btnClearPantry);
         btnAboutApp = findViewById(R.id.btnAboutApp);
         btnBackToPantry = findViewById(R.id.btnBackToPantry);
         txtSettingsInfo = findViewById(R.id.txtSettingsInfo);
 
-        updatePantryInfo();
+        // Display pantry information
+        updateSettingsInfo();
 
-        // Clear pantry with confirmation
-        btnClearPantry.setOnClickListener(v ->
-                showClearPantryConfirmation()
-        );
+        // Clear Pantry button
+        btnClearPantry.setOnClickListener(v -> showClearPantryDialog());
 
-        // Display information about the app
-        btnAboutApp.setOnClickListener(v ->
-                new AlertDialog.Builder(SettingsActivity.this)
-                        .setTitle("About Smart Pantry Manager")
-                        .setMessage(
-                                "Smart Pantry Manager helps you manage "
-                                        + "your pantry ingredients and find "
-                                        + "recipes based on what you have."
-                        )
-                        .setPositiveButton("OK", null)
-                        .show()
-        );
+        // About App button
+        btnAboutApp.setOnClickListener(v -> showAboutDialog());
 
-        // Return to the previous screen
+        // Back button
         btnBackToPantry.setOnClickListener(v -> finish());
     }
 
-    private void updatePantryInfo() {
+    private void updateSettingsInfo() {
+
         ArrayList<Ingredient> ingredients =
                 PantryStorage.loadIngredients(this);
 
+        int ingredientCount = ingredients == null
+                ? 0
+                : ingredients.size();
+
         txtSettingsInfo.setText(
-                "Smart Pantry Manager\n\n"
-                        + "Ingredients currently saved: "
-                        + ingredients.size()
-                        + "\n\nYour pantry data is stored locally "
-                        + "on this device."
+                "Smart Pantry Manager\n\n" +
+                        "Manage your pantry ingredients and discover recipes.\n\n" +
+                        "Ingredients currently stored: " + ingredientCount
         );
     }
 
-    private void showClearPantryConfirmation() {
-        new AlertDialog.Builder(SettingsActivity.this)
-                .setTitle("Clear pantry?")
+    private void showClearPantryDialog() {
+
+        new AlertDialog.Builder(this)
+                .setTitle("Clear Pantry")
                 .setMessage(
-                        "This will permanently delete all saved pantry "
-                                + "ingredients. Your recipe collection "
-                                + "will not be deleted."
+                        "Are you sure you want to delete all pantry ingredients? " +
+                                "This action cannot be undone."
                 )
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Clear pantry", (dialog, which) -> {
+                .setPositiveButton("Clear", (dialog, which) -> {
 
-                    PantryStorage.saveIngredients(
-                            SettingsActivity.this,
-                            new ArrayList<>()
+                    // Delete pantry records from SQLite
+                    PantryStorage.clearIngredients(
+                            SettingsActivity.this
                     );
-
-                    updatePantryInfo();
 
                     Toast.makeText(
                             SettingsActivity.this,
                             "Pantry cleared successfully.",
                             Toast.LENGTH_SHORT
                     ).show();
+
+                    // Refresh the settings information
+                    updateSettingsInfo();
                 })
+                .setNegativeButton("Cancel", (dialog, which) ->
+                        dialog.dismiss())
+                .show();
+    }
+
+    private void showAboutDialog() {
+
+        new AlertDialog.Builder(this)
+                .setTitle("About Smart Pantry Manager")
+                .setMessage(
+                        "Smart Pantry Manager\n\n" +
+                                "This application helps you manage pantry ingredients, " +
+                                "track quantities, and find recipes based on the ingredients " +
+                                "you have available.\n\n" +
+                                "Your pantry data is stored locally using SQLite."
+                )
+                .setPositiveButton("OK", (dialog, which) ->
+                        dialog.dismiss())
                 .show();
     }
 }

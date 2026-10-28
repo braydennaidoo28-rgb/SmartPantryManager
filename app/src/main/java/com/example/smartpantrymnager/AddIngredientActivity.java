@@ -8,8 +8,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.ArrayList;
-
 public class AddIngredientActivity extends AppCompatActivity {
 
     private EditText editIngredientName;
@@ -17,8 +15,11 @@ public class AddIngredientActivity extends AppCompatActivity {
     private EditText editUnit;
     private EditText editExpiryDate;
 
+    private Button btnSaveIngredient;
+    private Button btnCancel;
+
     private boolean editMode = false;
-    private String originalName;
+    private String originalName = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,8 +31,8 @@ public class AddIngredientActivity extends AppCompatActivity {
         editUnit = findViewById(R.id.editUnit);
         editExpiryDate = findViewById(R.id.editExpiryDate);
 
-        Button btnSaveIngredient = findViewById(R.id.btnSaveIngredient);
-        Button btnCancelIngredient = findViewById(R.id.btnCancelIngredient);
+        btnSaveIngredient = findViewById(R.id.btnSaveIngredient);
+        btnCancel = findViewById(R.id.btnCancelIngredient);
 
         editMode = getIntent().getBooleanExtra("editMode", false);
 
@@ -39,17 +40,21 @@ public class AddIngredientActivity extends AppCompatActivity {
             originalName = getIntent().getStringExtra("ingredientName");
 
             editIngredientName.setText(originalName);
+
             editQuantity.setText(String.valueOf(
-                    getIntent().getDoubleExtra("ingredientQuantity", 0)));
-            editUnit.setText(getIntent().getStringExtra("ingredientUnit"));
+                    getIntent().getDoubleExtra(
+                            "ingredientQuantity", 0)));
+
+            editUnit.setText(
+                    getIntent().getStringExtra("ingredientUnit"));
+
             editExpiryDate.setText(
                     getIntent().getStringExtra("ingredientExpiry"));
-
-            setTitle("Edit Ingredient");
         }
 
         btnSaveIngredient.setOnClickListener(v -> saveIngredient());
-        btnCancelIngredient.setOnClickListener(v -> finish());
+
+        btnCancel.setOnClickListener(v -> finish());
     }
 
     private void saveIngredient() {
@@ -60,9 +65,11 @@ public class AddIngredientActivity extends AppCompatActivity {
         String expiryDate = editExpiryDate.getText().toString().trim();
 
         if (name.isEmpty() || quantityText.isEmpty() || unit.isEmpty()) {
-            Toast.makeText(this,
-                    "Please fill in the ingredient name, quantity and unit.",
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(
+                    this,
+                    "Please enter the ingredient name, quantity and unit.",
+                    Toast.LENGTH_SHORT
+            ).show();
             return;
         }
 
@@ -71,54 +78,53 @@ public class AddIngredientActivity extends AppCompatActivity {
         try {
             quantity = Double.parseDouble(quantityText);
         } catch (NumberFormatException e) {
-            Toast.makeText(this,
-                    "Enter a valid quantity.",
-                    Toast.LENGTH_SHORT).show();
+            editQuantity.setError("Enter a valid quantity.");
             return;
         }
 
         if (quantity <= 0) {
-            Toast.makeText(this,
-                    "Quantity must be greater than zero.",
-                    Toast.LENGTH_SHORT).show();
+            editQuantity.setError("Quantity must be greater than zero.");
             return;
         }
 
-        ArrayList<Ingredient> ingredients =
-                PantryStorage.loadIngredients(this);
+        Ingredient ingredient = new Ingredient(
+                name,
+                quantity,
+                unit,
+                expiryDate
+        );
+
+        boolean success;
 
         if (editMode) {
-            boolean updated = false;
-
-            for (Ingredient ingredient : ingredients) {
-                if (ingredient.getName().equals(originalName)) {
-                    ingredient.setName(name);
-                    ingredient.setQuantity(quantity);
-                    ingredient.setUnit(unit);
-                    ingredient.setExpiryDate(expiryDate);
-                    updated = true;
-                    break;
-                }
-            }
-
-            if (!updated) {
-                Toast.makeText(this,
-                        "Ingredient could not be found.",
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
-
+            success = PantryStorage.updateIngredient(
+                    this,
+                    originalName,
+                    ingredient
+            );
         } else {
-            ingredients.add(new Ingredient(
-                    name, quantity, unit, expiryDate));
+            success = PantryStorage.addIngredient(
+                    this,
+                    ingredient
+            );
         }
 
-        PantryStorage.saveIngredients(this, ingredients);
+        if (success) {
+            Toast.makeText(
+                    this,
+                    editMode
+                            ? "Ingredient updated successfully."
+                            : "Ingredient saved successfully.",
+                    Toast.LENGTH_SHORT
+            ).show();
 
-        Toast.makeText(this,
-                editMode ? "Ingredient updated!" : "Ingredient saved!",
-                Toast.LENGTH_SHORT).show();
-
-        finish();
+            finish();
+        } else {
+            Toast.makeText(
+                    this,
+                    "Could not save the ingredient.",
+                    Toast.LENGTH_LONG
+            ).show();
+        }
     }
 }

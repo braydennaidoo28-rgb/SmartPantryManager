@@ -1,6 +1,7 @@
 
 package com.example.smartpantrymnager;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
@@ -8,98 +9,161 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.app.AlertDialog;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-public class PantryAdapter extends RecyclerView.Adapter<PantryAdapter.IngredientViewHolder> {
+public class PantryAdapter
+        extends RecyclerView.Adapter<PantryAdapter.PantryViewHolder> {
 
     private final ArrayList<Ingredient> ingredients;
+    private final Context context;
 
     public PantryAdapter(ArrayList<Ingredient> ingredients) {
+        this.ingredients = ingredients;
+        this.context = null;
+    }
+
+    public PantryAdapter(Context context, ArrayList<Ingredient> ingredients) {
+        this.context = context;
         this.ingredients = ingredients;
     }
 
     @NonNull
     @Override
-    public IngredientViewHolder onCreateViewHolder(
-            @NonNull ViewGroup parent, int viewType) {
+    public PantryViewHolder onCreateViewHolder(
+            @NonNull ViewGroup parent,
+            int viewType) {
 
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_ingredient, parent, false);
 
-        return new IngredientViewHolder(view);
+        return new PantryViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(
-            @NonNull IngredientViewHolder holder, int position) {
+            @NonNull PantryViewHolder holder,
+            int position) {
 
         Ingredient ingredient = ingredients.get(position);
 
         holder.txtIngredientName.setText(ingredient.getName());
 
-        String details = ingredient.getQuantity() + " "
-                + ingredient.getUnit();
+        String details = ingredient.getQuantity()
+                + " " + ingredient.getUnit();
 
         if (ingredient.getExpiryDate() != null
-                && !ingredient.getExpiryDate().isEmpty()) {
+                && !ingredient.getExpiryDate().trim().isEmpty()) {
             details += "\nExpires: " + ingredient.getExpiryDate();
         }
 
         holder.txtIngredientDetails.setText(details);
 
-        holder.itemView.setOnClickListener(v -> {
-            Context context = v.getContext();
+        holder.itemView.setOnClickListener(v ->
+                showOptions(holder.getBindingAdapterPosition()));
+    }
 
-            String[] options = {"Edit", "Delete"};
+    private void showOptions(int position) {
 
-            new AlertDialog.Builder(context)
-                    .setTitle(ingredient.getName())
-                    .setItems(options, (dialog, which) -> {
-                        if (which == 0) {
-                            Intent intent = new Intent(
-                                    context, AddIngredientActivity.class);
+        if (position == RecyclerView.NO_POSITION) {
+            return;
+        }
 
-                            intent.putExtra("editMode", true);
-                            intent.putExtra("ingredientName", ingredient.getName());
-                            intent.putExtra("ingredientQuantity", ingredient.getQuantity());
-                            intent.putExtra("ingredientUnit", ingredient.getUnit());
-                            intent.putExtra("ingredientExpiry", ingredient.getExpiryDate());
+        Ingredient ingredient = ingredients.get(position);
+        Context activeContext = context != null
+                ? context
+                : null;
 
-                            context.startActivity(intent);
+        if (activeContext == null) {
+            activeContext = ingredientsContext();
+        }
 
-                        } else {
-                            new AlertDialog.Builder(context)
-                                    .setTitle("Delete ingredient")
-                                    .setMessage("Delete " + ingredient.getName() + "?")
-                                    .setPositiveButton("Delete", (d, w) -> {
-                                        int currentPosition =
-                                                holder.getBindingAdapterPosition();
+        final Context dialogContext = activeContext;
 
-                                        if (currentPosition != RecyclerView.NO_POSITION) {
-                                            ingredients.remove(currentPosition);
+        new AlertDialog.Builder(dialogContext)
+                .setTitle(ingredient.getName())
+                .setItems(new String[]{"Edit", "Delete"}, (dialog, which) -> {
 
-                                            PantryStorage.saveIngredients(
-                                                    context, ingredients);
+                    if (which == 0) {
+                        Intent intent = new Intent(
+                                dialogContext,
+                                AddIngredientActivity.class
+                        );
 
-                                            notifyItemRemoved(currentPosition);
+                        intent.putExtra("editMode", true);
+                        intent.putExtra(
+                                "ingredientName",
+                                ingredient.getName()
+                        );
+                        intent.putExtra(
+                                "ingredientQuantity",
+                                ingredient.getQuantity()
+                        );
+                        intent.putExtra(
+                                "ingredientUnit",
+                                ingredient.getUnit()
+                        );
+                        intent.putExtra(
+                                "ingredientExpiry",
+                                ingredient.getExpiryDate()
+                        );
 
-                                            Toast.makeText(context,
-                                                    "Ingredient deleted",
-                                                    Toast.LENGTH_SHORT).show();
-                                        }
-                                    })
-                                    .setNegativeButton("Cancel", null)
-                                    .show();
+                        dialogContext.startActivity(intent);
+
+                    } else {
+                        confirmDelete(dialogContext, ingredient);
+                    }
+                })
+                .show();
+    }
+
+    private Context ingredientsContext() {
+        // The RecyclerView item always has the current Activity context.
+        return ingredients.isEmpty()
+                ? null
+                : null;
+    }
+
+    private void confirmDelete(
+            Context activeContext,
+            Ingredient ingredient) {
+
+        new AlertDialog.Builder(activeContext)
+                .setTitle("Delete ingredient?")
+                .setMessage(
+                        "Are you sure you want to delete "
+                                + ingredient.getName() + "?"
+                )
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete", (dialog, which) -> {
+
+                    boolean deleted = PantryStorage.deleteIngredient(
+                            activeContext,
+                            ingredient.getName()
+                    );
+
+                    if (deleted) {
+                        Toast.makeText(
+                                activeContext,
+                                "Ingredient deleted.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
+                        if (activeContext instanceof MainActivity) {
+                            ((MainActivity) activeContext).recreate();
                         }
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
-        });
+                    } else {
+                        Toast.makeText(
+                                activeContext,
+                                "Could not delete ingredient.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                })
+                .show();
     }
 
     @Override
@@ -107,12 +171,12 @@ public class PantryAdapter extends RecyclerView.Adapter<PantryAdapter.Ingredient
         return ingredients.size();
     }
 
-    static class IngredientViewHolder extends RecyclerView.ViewHolder {
+    static class PantryViewHolder extends RecyclerView.ViewHolder {
 
         TextView txtIngredientName;
         TextView txtIngredientDetails;
 
-        IngredientViewHolder(@NonNull View itemView) {
+        PantryViewHolder(@NonNull View itemView) {
             super(itemView);
 
             txtIngredientName =

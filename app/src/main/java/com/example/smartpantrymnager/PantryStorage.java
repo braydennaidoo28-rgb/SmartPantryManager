@@ -2,77 +2,138 @@
 package com.example.smartpantrymnager;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import android.database.Cursor;
 
 import java.util.ArrayList;
 
 public class PantryStorage {
 
-    private static final String PREFS_NAME = "SmartPantryPrefs";
-    private static final String KEY_INGREDIENTS = "ingredients";
+    // CREATE: Save a new ingredient to SQLite
+    public static boolean addIngredient(
+            Context context,
+            Ingredient ingredient) {
 
-    public static void saveIngredients(
-            Context context, ArrayList<Ingredient> ingredients) {
+        DatabaseHelper dbHelper = new DatabaseHelper(context);
 
-        SharedPreferences prefs = context.getSharedPreferences(
-                PREFS_NAME, Context.MODE_PRIVATE);
+        long result = dbHelper.addIngredient(
+                ingredient.getName(),
+                ingredient.getQuantity(),
+                ingredient.getUnit(),
+                ingredient.getExpiryDate()
+        );
 
-        JSONArray jsonArray = new JSONArray();
+        dbHelper.close();
 
-        try {
-            for (Ingredient ingredient : ingredients) {
-                JSONObject object = new JSONObject();
-
-                object.put("name", ingredient.getName());
-                object.put("quantity", ingredient.getQuantity());
-                object.put("unit", ingredient.getUnit());
-                object.put("expiryDate", ingredient.getExpiryDate());
-
-                jsonArray.put(object);
-            }
-
-            prefs.edit()
-                    .putString(KEY_INGREDIENTS, jsonArray.toString())
-                    .apply();
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        return result != -1;
     }
 
-    public static ArrayList<Ingredient> loadIngredients(Context context) {
+    // READ: Load all ingredients from SQLite
+    public static ArrayList<Ingredient> loadIngredients(
+            Context context) {
 
         ArrayList<Ingredient> ingredients = new ArrayList<>();
 
-        SharedPreferences prefs = context.getSharedPreferences(
-                PREFS_NAME, Context.MODE_PRIVATE);
-
-        String savedData = prefs.getString(KEY_INGREDIENTS, "[]");
+        DatabaseHelper dbHelper = new DatabaseHelper(context);
+        Cursor cursor = dbHelper.getAllIngredients();
 
         try {
-            JSONArray jsonArray = new JSONArray(savedData);
+            while (cursor.moveToNext()) {
 
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject object = jsonArray.getJSONObject(i);
+                String name = cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                                DatabaseHelper.COL_NAME));
 
-                Ingredient ingredient = new Ingredient(
-                        object.getString("name"),
-                        object.getDouble("quantity"),
-                        object.getString("unit"),
-                        object.optString("expiryDate", "")
-                );
+                double quantity = cursor.getDouble(
+                        cursor.getColumnIndexOrThrow(
+                                DatabaseHelper.COL_QUANTITY));
 
-                ingredients.add(ingredient);
+                String unit = cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                                DatabaseHelper.COL_UNIT));
+
+                String expiryDate = cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                                DatabaseHelper.COL_EXPIRY));
+
+                ingredients.add(new Ingredient(
+                        name,
+                        quantity,
+                        unit,
+                        expiryDate == null ? "" : expiryDate
+                ));
             }
-
-        } catch (JSONException e) {
-            e.printStackTrace();
+        } finally {
+            cursor.close();
+            dbHelper.close();
         }
 
         return ingredients;
+    }
+
+    // DELETE ALL: Used by the Settings screen
+    public static void clearIngredients(Context context) {
+
+        DatabaseHelper dbHelper = new DatabaseHelper(context);
+        android.database.sqlite.SQLiteDatabase db =
+                dbHelper.getWritableDatabase();
+
+        db.delete(DatabaseHelper.TABLE_PANTRY, null, null);
+
+        dbHelper.close();
+    }
+
+    // UPDATE and DELETE by ingredient name
+    // These temporary compatibility methods will be improved
+    // to use database IDs in the next step.
+    public static boolean updateIngredient(
+            Context context,
+            String oldName,
+            Ingredient updatedIngredient) {
+
+        DatabaseHelper dbHelper = new DatabaseHelper(context);
+        android.database.sqlite.SQLiteDatabase db =
+                dbHelper.getWritableDatabase();
+
+        android.content.ContentValues values =
+                new android.content.ContentValues();
+
+        values.put(DatabaseHelper.COL_NAME,
+                updatedIngredient.getName());
+        values.put(DatabaseHelper.COL_QUANTITY,
+                updatedIngredient.getQuantity());
+        values.put(DatabaseHelper.COL_UNIT,
+                updatedIngredient.getUnit());
+        values.put(DatabaseHelper.COL_EXPIRY,
+                updatedIngredient.getExpiryDate());
+
+        int rows = db.update(
+                DatabaseHelper.TABLE_PANTRY,
+                values,
+                DatabaseHelper.COL_NAME + " = ?",
+                new String[]{oldName}
+        );
+
+        dbHelper.close();
+
+        return rows > 0;
+    }
+
+    public static boolean deleteIngredient(
+            Context context,
+            String name) {
+
+        DatabaseHelper dbHelper = new DatabaseHelper(context);
+        android.database.sqlite.SQLiteDatabase db =
+                dbHelper.getWritableDatabase();
+
+        int rows = db.delete(
+                DatabaseHelper.TABLE_PANTRY,
+                DatabaseHelper.COL_NAME + " = ?",
+                new String[]{name}
+        );
+
+        dbHelper.close();
+
+        return rows > 0;
     }
 }

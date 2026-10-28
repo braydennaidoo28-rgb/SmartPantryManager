@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#FFFFFF">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Settings / Profile"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="#222222"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/txtSettingsInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Loading pantry information..."
+        android:textSize="16sp"
+        android:textColor="#444444"
+        android:padding="16dp"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btnAboutApp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="About the App"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnClearPantry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Clear Pantry"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnBackToPantry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Back to Pantry" />
+
+</LinearLayout>
